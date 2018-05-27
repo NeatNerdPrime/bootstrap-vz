@@ -9,12 +9,16 @@ properties:
       puppet:
         type: object
         properties:
+          agent:
+            type: object
+            properties:
+              major_version:
+                anyOf: 
+                - pattern: ^[5]$ 
           assets: {$ref: '#/definitions/absolute_path'}
-          enable_agent: {type: boolean}
           manifest: {$ref: '#/definitions/absolute_path'}
           install_modules:
             type: array
-            minItems: 1              
             items:
               type: array
               items:
@@ -25,7 +29,6 @@ properties:
                   type: number
               required: [name]               
               minItems: 1
-        minProperties: 1
         additionalProperties: false
 definitions:
   absolute_path:

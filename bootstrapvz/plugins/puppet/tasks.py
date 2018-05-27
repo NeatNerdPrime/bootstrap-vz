@@ -3,30 +3,27 @@ from bootstrapvz.base import Task
 from bootstrapvz.common import phases
 from bootstrapvz.common.tasks import apt
 from bootstrapvz.common.exceptions import TaskError
-from bootstrapvz.common.releases import jessie, wheezy, stretch
+from bootstrapvz.common.releases import jessie, wheezy, stretch, stable
 from bootstrapvz.common.tools import sed_i, log_check_call, rel_path
 from __builtin__ import str
 
-
-ASSETS_DIR_STRETCH = rel_path(__file__, 'assets/gpg-keyrings-PC1/stretch')
-ASSETS_DIR_JESSIE = rel_path(__file__, 'assets/gpg-keyrings-PC1/jessie')
-ASSETS_DIR_WHEEZY = rel_path(__file__, 'assets/gpg-keyrings-PC1/wheezy')
-
+#puppet_major_version = info.manifest.plugins['puppet']['agent']['major_version']
+gpg_key_puppet5 = rel_path(__file__, 'assets/gpg/puppet5')
 
 class CheckRequestedDebianRelease(Task):
-    description = 'Checking whether there is a release available for {info.manifest.release}'
+    description = "Checking whether there is a release available"
     phase = phases.validation
 
     @classmethod
     def run(cls, info):
         from bootstrapvz.common.exceptions import TaskError
-        if info.manifest.release not in (jessie, wheezy, stretch):
-            msg = 'Debian {info.manifest.release} is not (yet) available in the Puppetlabs.com APT repository.'
+        if info.manifest.release not in (jessie, wheezy, stretch, stable):
+            msg = 'Your Debian release has no installable puppet candidate'
             raise TaskError(msg)
 
 
 class CheckAssetsPath(Task):
-    description = 'Checking whether the assets path exist'
+    description = 'Asserting assets path'
     phase = phases.validation
     predecessors = [CheckRequestedDebianRelease]
 
@@ -58,40 +55,29 @@ class CheckManifestPath(Task):
             raise TaskError(msg)
 
 
-class InstallPuppetlabsPC1ReleaseKey(Task):
-    description = 'Install puppetlabs PC1 Release key into the keyring'
+class InstallPuppetlabsPuppet5ReleaseKey(Task):
+    description = 'Install puppetlabs puppet5 Release key into the keyring'
     phase = phases.package_installation
     successors = [apt.WriteSources]
 
     @classmethod
     def run(cls, info):
         from shutil import copy
-        if (info.manifest.release == stretch):
-            key_path = os.path.join(ASSETS_DIR_STRETCH, 'puppetlabs-pc1-keyring.gpg')
-        if (info.manifest.release == jessie):
-            key_path = os.path.join(ASSETS_DIR_JESSIE, 'puppetlabs-pc1-keyring.gpg')
-        if (info.manifest.release == wheezy):
-            key_path = os.path.join(ASSETS_DIR_WHEEZY, 'puppetlabs-pc1-keyring.gpg')
-        destination = os.path.join(info.root, 'etc/apt/trusted.gpg.d/puppetlabs-pc1-keyring.gpg')
+        key_path = os.path.join(gpg_key_puppet5, 'puppet5-keyring.gpg')
+        destination = os.path.join(info.root, 'etc/apt/trusted.gpg.d/puppet5-keyring.gpg')
         copy(key_path, destination)
 
 
-class AddPuppetlabsPC1SourcesList(Task):
+class AddPuppetlabsPuppet5SourcesList(Task):
     description = 'Adding Puppetlabs APT repo to the list of sources.'
     phase = phases.preparation
 
     @classmethod
     def run(cls, info):
-        if (info.manifest.release == stretch):
-            info.source_lists.add('puppetlabs', 'deb http://apt.puppetlabs.com stretch PC1')
-        if (info.manifest.release == jessie):
-            info.source_lists.add('puppetlabs', 'deb http://apt.puppetlabs.com jessie PC1')
-        if (info.manifest.release == wheezy):
-            info.source_lists.add('puppetlabs', 'deb http://apt.puppetlabs.com wheezy PC1')
-
+        info.source_lists.add('puppet5', "deb http://apt.puppetlabs.com "+ str(info.manifest.release) +" puppet5")
 
 class InstallPuppetAgent(Task):
-    description = 'Install puppet-agent from https://apt.puppetlabs.com for {system.release}'
+    description = "Install puppet5 agent"
     phase = phases.system_modification
 
     @classmethod
@@ -130,7 +116,7 @@ class CopyPuppetAssets(Task):
         copy_tree(info.manifest.plugins['puppet']['assets'], os.path.join(info.root, 'etc/puppetlabs/'))
 
 
-class ApplyPuppetManifest(Task):
+class ApplyPuppetManifestNoop(Task):
     description = 'Applying puppet manifest.'
     phase = phases.system_modification
     predecessors = [CopyPuppetAssets]
@@ -147,17 +133,7 @@ class ApplyPuppetManifest(Task):
         manifest_dst = os.path.join(info.root, manifest_rel_dst)
         copy(pp_manifest, manifest_dst)
         manifest_path = os.path.join('/', manifest_rel_dst)
-        log_check_call(['chroot', info.root, 'puppet', 'apply', '--verbose', '--debug', manifest_path])
+        log_check_call(['chroot', info.root, 'puppet', 'apply', '--verbose', '--test', '--debug', '--noop', manifest_path])
         os.remove(manifest_dst)
         hosts_path = os.path.join(info.root, 'etc/hosts')
         sed_i(hosts_path, '127.0.0.1\s*{hostname}\n?'.format(hostname=hostname), '')
-
-
-class EnableAgent(Task):
-    description = 'Enabling the puppet agent'
-    phase = phases.system_modification
-
-    @classmethod
-    def run(cls, info):
-        puppet_defaults = os.path.join(info.root, 'etc/defaults/puppet')
-        sed_i(puppet_defaults, 'START=no', 'START=yes')

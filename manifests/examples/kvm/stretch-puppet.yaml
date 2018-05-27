@@ -35,11 +35,5 @@ plugins:
     password: something
   # puppet plugin
   puppet:
-    # The assets path MUST be ABSOLUTE on your project.
-    assets: /your/absolute/path/to/etc/puppetlabs
-    install_modules:
-      - [puppetlabs-accounts]
-      - [puppetlabs-apt]
-      - [puppetlabs-concat, 3.0.0]
-      - [puppetlabs-stdlib]
-      - [puppetlabs-apache, 1.11.0]
+    agent:
+      major_version: '5'
