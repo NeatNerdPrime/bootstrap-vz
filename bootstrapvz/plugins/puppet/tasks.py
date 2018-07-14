@@ -7,8 +7,10 @@ from bootstrapvz.common.releases import jessie, wheezy, stretch, stable
 from bootstrapvz.common.tools import sed_i, log_check_call, rel_path
 from __builtin__ import str
 
-#puppet_major_version = info.manifest.plugins['puppet']['agent']['major_version']
+
+# puppet_major_version = info.manifest.plugins['puppet']['agent']['major_version']
 gpg_key_puppet5 = rel_path(__file__, 'assets/gpg/puppet5')
+
 
 class CheckRequestedDebianRelease(Task):
     description = "Checking whether there is a release available"
@@ -74,7 +76,8 @@ class AddPuppetlabsPuppet5SourcesList(Task):
 
     @classmethod
     def run(cls, info):
-        info.source_lists.add('puppet5', "deb http://apt.puppetlabs.com "+ str(info.manifest.release) +" puppet5")
+        info.source_lists.add('puppet5', "deb http://apt.puppetlabs.com " + str(info.manifest.release) + " puppet5")
+
 
 class InstallPuppetAgent(Task):
     description = "Install puppet5 agent"

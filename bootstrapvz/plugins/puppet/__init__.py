@@ -19,4 +19,3 @@ def resolve_tasks(taskset, manifest):
         taskset.add(tasks.ApplyPuppetManifestNoop)
     if 'install_modules' in manifest.plugins['puppet']:
         taskset.add(tasks.InstallModules)
-
