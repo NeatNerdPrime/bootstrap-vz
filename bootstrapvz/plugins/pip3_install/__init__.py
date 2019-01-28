@@ -1,3 +1,4 @@
+from . import tasks
 
 
 def validate_manifest(data, validator, error):
@@ -6,6 +7,5 @@ def validate_manifest(data, validator, error):
 
 
 def resolve_tasks(taskset, manifest):
-    from . import tasks
-    taskset.add(tasks.AddUnattendedUpgradesPackage)
-    taskset.add(tasks.EnablePeriodicUpgrades)
+    taskset.add(tasks.AddPip3Package)
+    taskset.add(tasks.Pip3InstallCommand)
